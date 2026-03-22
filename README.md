@@ -7,7 +7,7 @@
 
 > An interactive 3D globe that visualizes visa-free travel destinations based on your passport country. Scraped from Hacker News Show HN and built autonomously.
 
-**🔗 Live Demo**: [vercel-url]
+**🔗 Live Demo**: https://daily-webapp-2026-03-22-passport-globe.vercel.app
 **💡 Idea Source**: https://news.ycombinator.com/show
 
 ## What It Does
