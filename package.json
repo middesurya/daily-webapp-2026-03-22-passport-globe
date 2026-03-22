@@ -1,0 +1,13 @@
+{
+  "name": "passport-globe",
+  "version": "1.0.0",
+  "description": "Interactive 3D globe visualizing visa-free travel destinations by passport country",
+  "main": "index.html",
+  "scripts": {
+    "start": "python3 -m http.server 8080",
+    "test": "node tests/test.js"
+  },
+  "keywords": ["passport", "visa", "globe", "travel", "d3js", "daily-webapp"],
+  "author": "Surya Midde",
+  "license": "MIT"
+}

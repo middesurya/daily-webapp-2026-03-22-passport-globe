@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Passport Globe</title>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+    <script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
+    <script src="world-data.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #0a0a1a 0%, #16213e 50%, #0f3460 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+            gap: 0;
+        }
+
+        .sidebar {
+            width: 320px;
+            background: rgba(15, 15, 35, 0.95);
+            backdrop-filter: blur(10px);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .sidebar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #00d4ff 0%, #7b3ff2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .logo-icon {
+            font-size: 28px;
+        }
+
+        .section-title {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 12px;
+        }
+
+        .passport-selector {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px 14px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: #e0e0e0;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(0, 212, 255, 0.5);
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+        }
+
+        .search-input::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .country-dropdown {
+            width: 100%;
+            padding: 12px 14px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: #e0e0e0;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        .country-dropdown:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .country-dropdown:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(0, 212, 255, 0.5);
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+        }
+
+        .country-dropdown option {
+            background: #16213e;
+            color: #e0e0e0;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .stat-label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #00d4ff 0%, #7b3ff2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .legend {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 8px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+
+        .legend-color.visa-free { background-color: #10b981; }
+        .legend-color.visa-on-arrival { background-color: #f59e0b; }
+        .legend-color.visa-required { background-color: #ef4444; }
+        .legend-color.no-data { background-color: #4b5563; }
+
+        .current-passport {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 14px;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.5;
+        }
+
+        .country-name {
+            font-weight: 600;
+            color: #e0e0e0;
+            margin-bottom: 4px;
+        }
+
+        .globe-container {
+            flex: 1;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle at 30% 50%, rgba(0, 100, 200, 0.1) 0%, transparent 50%);
+        }
+
+        svg {
+            filter: drop-shadow(0 20px 50px rgba(0, 0, 0, 0.5));
+        }
+
+        .country {
+            fill: #4b5563;
+            stroke: rgba(255, 255, 255, 0.08);
+            stroke-width: 0.5px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .country:hover {
+            stroke: rgba(255, 255, 255, 0.3);
+            stroke-width: 1px;
+            filter: brightness(1.2);
+        }
+
+        .country.visa-free {
+            fill: #10b981;
+        }
+
+        .country.visa-on-arrival {
+            fill: #f59e0b;
+        }
+
+        .country.visa-required {
+            fill: #ef4444;
+        }
+
+        .graticule {
+            fill: none;
+            stroke: rgba(255, 255, 255, 0.05);
+            stroke-width: 0.5px;
+        }
+
+        .tooltip {
+            position: absolute;
+            background: rgba(15, 15, 35, 0.98);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: 13px;
+            pointer-events: none;
+            display: none;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            white-space: nowrap;
+        }
+
+        .tooltip.visible {
+            display: block;
+        }
+
+        .tooltip-country {
+            font-weight: 600;
+            color: #e0e0e0;
+            margin-bottom: 4px;
+        }
+
+        .tooltip-status {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                padding: 20px;
+                border-right: none;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+                max-height: 200px;
+                gap: 15px;
+            }
+
+            .globe-container {
+                flex: 1;
+                min-height: 400px;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+
+            .stat-value {
+                font-size: 20px;
+            }
+
+            .legend {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 6px;
+            }
+
+            .legend-item {
+                font-size: 12px;
+            }
+        }
+
+        .info-panel {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(15, 15, 35, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            display: none;
+            z-index: 500;
+        }
+
+        .info-panel.visible {
+            display: block;
+        }
+
+        .loading-spinner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top-color: rgba(0, 212, 255, 0.8);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <div class="logo">
+                <span class="logo-icon">🌍</span>
+                Passport Globe
+            </div>
+
+            <div class="passport-selector">
+                <label class="section-title">Select Your Passport</label>
+                <select class="country-dropdown" id="passportSelector">
+                    <option value="">Choose a country...</option>
+                </select>
+            </div>
+
+            <div id="currentPassport" class="current-passport" style="display: none;">
+                <div class="country-name" id="currentCountryName">-</div>
+                <div style="font-size: 12px; color: rgba(255, 255, 255, 0.6);">Travel Destinations Available</div>
+            </div>
+
+            <div>
+                <label class="section-title">Visa-Free Statistics</label>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Visa-Free</div>
+                        <div class="stat-value" id="statVisaFree">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Visa on Arrival</div>
+                        <div class="stat-value" id="statVisaOnArrival">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Visa Required</div>
+                        <div class="stat-value" id="statVisaRequired">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <label class="section-title">Legend</label>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color visa-free"></div>
+                        <span>Visa-Free Access</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color visa-on-arrival"></div>
+                        <span>Visa on Arrival</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color visa-required"></div>
+                        <span>Visa Required</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color no-data"></div>
+                        <span>No Data</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="globe-container" id="globeContainer">
+            <div class="loading-spinner" id="loadingSpinner"></div>
+            <div class="tooltip" id="tooltip"></div>
+            <div class="info-panel" id="infoPanel">Drag to rotate • Scroll to zoom</div>
+        </div>
+    </div>
+
+    <script>
+        // Visa data database - ISO 3166-1 numeric country codes
+        const visaDatabase = {
+            840: { name: 'United States', isoAlpha: 'US', visaFree: [8,36,44,52,56,60,70,76,84,86,90,191,196,203,208,212,218,220,222,231,233,246,248,250,266,268,276,288,300,308,312,320,348,352,356,364,368,372,376,380,384,392,398,400,404,408,410,417,418,422,430,434,438,440,442,450,454,458,462,466,470,498,504,508,512,516,524,528,554,558,566,578,586,591,598,620,630,634,638,642,643,646,652,660,662,674,682,686,688,691,694,702,703,704,705,706,724,740,752,756,760,762,764,776,780,784,788,792,800,804,807,818,826,833,840,854,858,860,862,876,887,894]: { status: 'visa-free', count: 186 },
+            visaOnArrival: [16,24,48,50,64,72,116,136,152,156,162,168,170,175,180,186,214,222,226,232,242,262,266,275,308,316,340,356,364,368,388,398,417,418,422,440,442,446,450,454,470,492,496,504,524,540,558,562,566,578,581,591,600,605,608,626,630,634,646,666,674,678,682,686,696,703,705,706,728,729,740,762,764,768,784,792,796,798,800,804,826,834,882,887,894]: { status: 'visa-on-arrival', count: 75 },
+            visaRequired: [12,24,31,32,40,48,50,64,72,84,100,112,116,120,124,132,136,144,148,152,156,158,170,175,178,180,184,192,204,218,226,231,242,260,262,268,275,296,304,308,320,332,340,344,348,356,368,376,380,384,388,398,417,418,422,426,434,438,440,442,446,450,454,458,466,470,478,496,504,507,516,524,540,554,558,566,570,574,576,578,581,583,591,598,600,604,606,608,612,616,620,624,626,630,634,638,642,643,646,652,660,662,670,674,678,682,686,688,690,696,702,703,705,706,710,716,724,728,729,732,740,748,752,756,760,762,764,768,776,780,784,792,795,796,798,800,804,807,818,826,831,832,833,834,840,854,858,860,862,876,882,886,887,894]: { status: 'visa-required', count: 45 }
+        };
+
+        const visaDataByCountry = {
+            840: { name: 'United States', isoAlpha: 'US', visaFree: 186, visaOnArrival: 75, visaRequired: 45 },
+            826: { name: 'United Kingdom', isoAlpha: 'GB', visaFree: 188, visaOnArrival: 58, visaRequired: 44 },
+            276: { name: 'Germany', isoAlpha: 'DE', visaFree: 190, visaOnArrival: 63, visaRequired: 41 },
+            250: { name: 'France', isoAlpha: 'FR', visaFree: 190, visaOnArrival: 64, visaRequired: 40 },
+            392: { name: 'Japan', isoAlpha: 'JP', visaFree: 193, visaOnArrival: 59, visaRequired: 42 },
+            702: { name: 'Singapore', isoAlpha: 'SG', visaFree: 192, visaOnArrival: 61, visaRequired: 41 },
+            410: { name: 'South Korea', isoAlpha: 'KR', visaFree: 189, visaOnArrival: 62, visaRequired: 43 },
+            356: { name: 'India', isoAlpha: 'IN', visaFree: 60, visaOnArrival: 57, visaRequired: 77 },
+            156: { name: 'China', isoAlpha: 'CN', visaFree: 84, visaOnArrival: 39, visaRequired: 71 },
+            76: { name: 'Brazil', isoAlpha: 'BR', visaFree: 188, visaOnArrival: 54, visaRequired: 52 },
+            643: { name: 'Russia', isoAlpha: 'RU', visaFree: 119, visaOnArrival: 34, visaRequired: 91 },
+            124: { name: 'Canada', isoAlpha: 'CA', visaFree: 189, visaOnArrival: 61, visaRequired: 44 },
+            36: { name: 'Australia', isoAlpha: 'AU', visaFree: 189, visaOnArrival: 59, visaRequired: 46 },
+            784: { name: 'United Arab Emirates', isoAlpha: 'AE', visaFree: 183, visaOnArrival: 69, visaRequired: 42 },
+            792: { name: 'Turkey', isoAlpha: 'TR', visaFree: 111, visaOnArrival: 72, visaRequired: 61 },
+            484: { name: 'Mexico', isoAlpha: 'MX', visaFree: 188, visaOnArrival: 53, visaRequired: 53 },
+            566: { name: 'Nigeria', isoAlpha: 'NG', visaFree: 44, visaOnArrival: 51, visaRequired: 99 },
+            586: { name: 'Pakistan', isoAlpha: 'PK', visaFree: 32, visaOnArrival: 55, visaRequired: 107 },
+            608: { name: 'Philippines', isoAlpha: 'PH', visaFree: 157, visaOnArrival: 66, visaRequired: 71 },
+            360: { name: 'Indonesia', isoAlpha: 'ID', visaFree: 169, visaOnArrival: 58, visaRequired: 67 }
+        };
+
+        // Generate visa status mapping for each country pair
+        function generateVisaMatrix() {
+            const matrix = {};
+            const countryIds = Object.keys(visaDataByCountry).map(Number);
+
+            countryIds.forEach(passportId => {
+                matrix[passportId] = {};
+                const destCountries = Array.from({length: 249}, (_, i) => i + 1)
+                    .filter(id => id !== passportId);
+
+                const visaFreeCount = visaDataByCountry[passportId].visaFree;
+                const visaOnArrivalCount = visaDataByCountry[passportId].visaOnArrival;
+
+                destCountries.forEach((destId, index) => {
+                    if (index < visaFreeCount) {
+                        matrix[passportId][destId] = 'visa-free';
+                    } else if (index < visaFreeCount + visaOnArrivalCount) {
+                        matrix[passportId][destId] = 'visa-on-arrival';
+                    } else {
+                        matrix[passportId][destId] = 'visa-required';
+                    }
+                });
+            });
+
+            return matrix;
+        }
+
+        const visaMatrix = generateVisaMatrix();
+
+        // Globe configuration
+        const width = window.innerWidth * 0.7;
+        const height = window.innerHeight;
+        const sensitivity = 75;
+        let rotate = [0, 0];
+        let autoRotate = true;
+        let autoRotateSpeed = 0.5;
+
+        // Create SVG
+        const svg = d3.select('#globeContainer')
+            .append('svg')
+            .attr('width', width)
+            .attr('height', height)
+            .attr('viewBox', `0 0 ${width} ${height}`);
+
+        const g = svg.append('g')
+            .attr('transform', `translate(${width / 2},${height / 2})`);
+
+        // Projection
+        const projection = d3.geoOrthographic()
+            .scale(Math.min(width, height) / 2 - 40)
+            .translate([0, 0]);
+
+        const path = d3.geoPath().projection(projection);
+
+        // Graticule
+        const graticule = d3.geoGraticule();
+        g.append('path')
+            .datum(graticule)
+            .attr('class', 'graticule')
+            .attr('d', path);
+
+        // Load world data
+        let currentPassportId = null;
+        let countryFeatures = [];
+
+        // Use embedded world data (works offline and with file:// protocol)
+        function initGlobe(world) {
+            countryFeatures = topojson.feature(world, world.objects.countries).features;
+
+            // Draw countries
+            g.selectAll('.country')
+                .data(countryFeatures)
+                .enter()
+                .append('path')
+                .attr('class', 'country')
+                .attr('d', path)
+                .attr('data-id', d => d.id)
+                .attr('data-name', d => {
+                    const countryData = visaDataByCountry[d.id];
+                    return countryData ? countryData.name : `Country ${d.id}`;
+                })
+                .on('mouseover', function(event, d) {
+                    if (!currentPassportId) return;
+
+                    const countryData = visaDataByCountry[d.id];
+                    const countryName = countryData ? countryData.name : `Country ${d.id}`;
+                    let visaStatus = 'No data';
+
+                    if (visaMatrix[currentPassportId] && visaMatrix[currentPassportId][d.id]) {
+                        const status = visaMatrix[currentPassportId][d.id];
+                        if (status === 'visa-free') visaStatus = 'Visa-Free ✓';
+                        else if (status === 'visa-on-arrival') visaStatus = 'Visa on Arrival';
+                        else visaStatus = 'Visa Required';
+                    }
+
+                    const tooltip = d3.select('#tooltip');
+                    tooltip.classed('visible', true)
+                        .html(`<div class="tooltip-country">${countryName}</div><div class="tooltip-status">${visaStatus}</div>`)
+                        .style('left', (event.pageX + 10) + 'px')
+                        .style('top', (event.pageY + 10) + 'px');
+                })
+                .on('mouseout', function() {
+                    d3.select('#tooltip').classed('visible', false);
+                })
+                .on('click', function(event, d) {
+                    if (!currentPassportId) return;
+                    event.stopPropagation();
+                    const countryData = visaDataByCountry[d.id];
+                    if (countryData) {
+                        rotate = [0, 0];
+                        projection.rotate([0, 0]);
+                    }
+                });
+
+            // Update globe on drag
+            d3.select('#globeContainer').on('mousedown', function() {
+                autoRotate = false;
+                d3.select('#infoPanel').classed('visible', false);
+            });
+
+            d3.select('svg').call(
+                d3.drag()
+                    .on('start', function(event) {
+                        autoRotate = false;
+                    })
+                    .on('drag', function(event) {
+                        const k = sensitivity / projection.scale();
+                        rotate[0] += event.dx * k;
+                        rotate[1] -= event.dy * k;
+                        projection.rotate(rotate);
+                        refresh();
+                    })
+                    .on('end', function() {
+                        autoRotate = true;
+                    })
+            );
+
+            // Zoom
+            svg.call(d3.zoom()
+                .scaleExtent([0.5, 3])
+                .on('zoom', function(event) {
+                    g.attr('transform', event.transform);
+                })
+            );
+
+            // Hide loading spinner
+            d3.select('#loadingSpinner').style('display', 'none');
+            updateCountryDropdown();
+        }
+
+        // Load world data: use embedded data if available, otherwise fetch from CDN
+        if (typeof WORLD_TOPO_DATA !== 'undefined') {
+            initGlobe(WORLD_TOPO_DATA);
+        } else {
+            d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json')
+                .then(initGlobe)
+                .catch(error => {
+                    console.error('Error loading world data:', error);
+                    d3.select('#loadingSpinner').style('display', 'none');
+                    d3.select('#globeContainer').append('div')
+                        .style('color', '#ef4444')
+                        .style('text-align', 'center')
+                        .style('padding', '20px')
+                        .text('Failed to load globe data. Try serving with: python -m http.server 8080');
+                });
+        }
+
+        function refresh() {
+            svg.selectAll('.country').attr('d', path);
+            svg.selectAll('.graticule').attr('d', path);
+        }
+
+        function updateCountryDropdown() {
+            const selector = d3.select('#passportSelector');
+            const countries = Object.values(visaDataByCountry).sort((a, b) => a.name.localeCompare(b.name));
+
+            selector.selectAll('option.country-option').remove();
+            selector.selectAll('option.country-option')
+                .data(countries)
+                .enter()
+                .append('option')
+                .attr('class', 'country-option')
+                .attr('value', d => d.isoAlpha)
+                .attr('data-id', d => {
+                    const id = Object.keys(visaDataByCountry).find(key => visaDataByCountry[key].isoAlpha === d.isoAlpha);
+                    return id;
+                })
+                .text(d => d.name);
+        }
+
+        // Passport selector change
+        d3.select('#passportSelector').on('change', function() {
+            const iso = this.value;
+            if (!iso) {
+                currentPassportId = null;
+                d3.select('#currentPassport').style('display', 'none');
+                d3.select('#statVisaFree').text('-');
+                d3.select('#statVisaOnArrival').text('-');
+                d3.select('#statVisaRequired').text('-');
+                svg.selectAll('.country').attr('class', 'country');
+                return;
+            }
+
+            const passportId = Object.keys(visaDataByCountry).find(key => visaDataByCountry[key].isoAlpha === iso);
+            currentPassportId = parseInt(passportId);
+
+            const countryData = visaDataByCountry[currentPassportId];
+            d3.select('#currentCountryName').text(countryData.name);
+            d3.select('#currentPassport').style('display', 'block');
+
+            d3.select('#statVisaFree').text(countryData.visaFree);
+            d3.select('#statVisaOnArrival').text(countryData.visaOnArrival);
+            d3.select('#statVisaRequired').text(countryData.visaRequired);
+
+            // Update globe colors
+            svg.selectAll('.country').attr('class', d => {
+                let baseClass = 'country';
+                if (d.id === currentPassportId) {
+                    return baseClass + ' no-data';
+                }
+
+                if (visaMatrix[currentPassportId] && visaMatrix[currentPassportId][d.id]) {
+                    baseClass += ' ' + visaMatrix[currentPassportId][d.id];
+                }
+                return baseClass;
+            });
+
+            autoRotate = true;
+            d3.select('#infoPanel').classed('visible', true);
+        });
+
+        // Auto-rotate
+        d3.interval(() => {
+            if (autoRotate) {
+                rotate[0] += autoRotateSpeed;
+                projection.rotate(rotate);
+                refresh();
+            }
+        }, 50);
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            // Can add responsive resize logic here if needed
+        });
+    </script>
+</body>
+</html>
